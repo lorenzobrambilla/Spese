@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Divisione Spese Vacanza (3 Coppie)</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --text: #1f2937;
+      --border: #e5e7eb;
+      --danger: #ef4444;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+    }
+
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .list-item:last-child {
+      border-bottom: none;
+    }
+
+    .btn-delete {
+      background: none;
+      color: var(--danger);
+      border: none;
+      width: auto;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    .settlement {
+      background-color: #eff6ff;
+      border-left: 4px solid var(--primary);
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 0 6px 6px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🌴 Divisione Spese Vacanza</h1>
+
+  <!-- FORM NUOVA SPESA -->
+  <div class="card">
+    <h2>Aggiungi Spesa</h2>
+    <div class="form-group">
+      <label for="description">Descrizione</label>
+      <input type="text" id="description" placeholder="Es. Cena di pesce, Autostrada, Spesa">
+    </div>
+    <div class="form-group">
+      <label for="amount">Importo (€)</label>
+      <input type="number" id="amount" step="0.01" placeholder="0.00">
+    </div>
+    <div class="form-group">
+      <label for="payer">Chi ha pagato?</label>
+      <select id="payer">
+        <option value="Coppia 1">Coppia 1</option>
+        <option value="Coppia 2">Coppia 2</option>
+        <option value="Coppia 3">Coppia 3</option>
+      </select>
+    </div>
+    <button onclick="addExpense()">Aggiungi Spesa</button>
+  </div>
+
+  <!-- RIEPILOGO E CONTI -->
+  <div class="card">
+    <h2>Conguaglio Finale</h2>
+    <div id="balances-summary">
+      <p style="color: #6b7280;">Nessuna spesa inserita.</p>
+    </div>
+    <div id="settlements-container" style="margin-top: 15px;"></div>
+  </div>
+
+  <!-- ELENCO SPESE -->
+  <div class="card">
+    <h2>Storico Spese</h2>
+    <div id="expenses-list">
+      <p style="color: #6b7280;">Nessuna spesa presente.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  let expenses = JSON.parse(localStorage.getItem('vacation_expenses')) || [];
+
+  function saveAndRender() {
+    localStorage.setItem('vacation_expenses', JSON.stringify(expenses));
+    renderExpenses();
+    calculateBalances();
+  }
+
+  function addExpense() {
+    const descInput = document.getElementById('description');
+    const amountInput = document.getElementById('amount');
+    const payerInput = document.getElementById('payer');
+
+    const description = descInput.value.trim();
+    const amount = parseFloat(amountInput.value);
+    const payer = payerInput.value;
+
+    if (!description || isNaN(amount) || amount <= 0) {
+      alert("Inserisci una descrizione e un importo valido.");
+      return;
+    }
+
+    expenses.push({ id: Date.now(), description, amount, payer });
+    
+    descInput.value = '';
+    amountInput.value = '';
+    
+    saveAndRender();
+  }
+
+  function deleteExpense(id) {
+    expenses = expenses.filter(e => e.id !== id);
+    saveAndRender();
+  }
+
+  function renderExpenses() {
+    const listEl = document.getElementById('expenses-list');
+    if (expenses.length === 0) {
+      listEl.innerHTML = '<p style="color: #6b7280;">Nessuna spesa presente.</p>';
+      return;
+    }
+
+    listEl.innerHTML = expenses.map(e => `
+      <div class="list-item">
+        <div>
+          <strong>${e.description}</strong><br>
+          <small style="color: #6b7280;">Pagato da: ${e.payer}</small>
+        </div>
+        <div style="text-align: right;">
+          <span>€ ${e.amount.toFixed(2)}</span>
+          <button class="btn-delete" onclick="deleteExpense(${e.id})">Elimina</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function calculateBalances() {
+    const balancesEl = document.getElementById('balances-summary');
+    const settlementsEl = document.getElementById('settlements-container');
+
+    if (expenses.length === 0) {
+      balancesEl.innerHTML = '<p style="color: #6b7280;">Nessuna spesa inserita.</p>';
+      settlementsEl.innerHTML = '';
+      return;
+    }
+
+    const couples = ['Coppia 1', 'Coppia 2', 'Coppia 3'];
+    const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const sharePerCouple = totalSpent / couples.length;
+
+    const paid = { 'Coppia 1': 0, 'Coppia 2': 0, 'Coppia 3': 0 };
+    expenses.forEach(e => paid[e.payer] += e.amount);
+
+    // Calcolo saldo netto per ciascuna coppia
+    const netBalances = {};
+    couples.forEach(c => {
+      netBalances[c] = paid[c] - sharePerCouple;
+    });
+
+    // Mostra totale e spese individuali
+    let htmlSummary = `<p><strong>Totale Vacanza:</strong> € ${totalSpent.toFixed(2)} (${sharePerCouple.toFixed(2)} € / coppia)</p><ul>`;
+    couples.forEach(c => {
+      htmlSummary += `<li>${c}: ha pagato € ${paid[c].toFixed(2)}</li>`;
+    });
+    htmlSummary += '</ul>';
+    balancesEl.innerHTML = htmlSummary;
+
+    // Calcolo conguagli ottimali (chi deve dare a chi)
+    let debtors = [];
+    let creditors = [];
+
+    couples.forEach(c => {
+      const bal = netBalances[c];
+      if (bal < -0.01) debtors.push({ name: c, amount: -bal });
+      else if (bal > 0.01) creditors.push({ name: c, amount: bal });
+    });
+
+    let settlementHtml = '<h3>Trasferimenti necessari:</h3>';
+    let i = 0, j = 0;
+
+    if (debtors.length === 0 && creditors.length === 0) {
+      settlementHtml += '<p>Siete già in pari!</p>';
+    } else {
+      while (i < debtors.length && j < creditors.length) {
+        let payment = Math.min(debtors[i].amount, creditors[j].amount);
+        settlementHtml += `
+          <div class="settlement">
+            <strong>${debtors[i].name}</strong> deve dare <strong>€ ${payment.toFixed(2)}</strong> a <strong>${creditors[j].name}</strong>
+          </div>`;
+
+        debtors[i].amount -= payment;
+        creditors[j].amount -= payment;
+
+        if (debtors[i].amount < 0.01) i++;
+        if (creditors[j].amount < 0.01) j++;
+      }
+    }
+
+    settlementsEl.innerHTML = settlementHtml;
+  }
+
+  // Inizializzazione al caricamento della pagina
+  saveAndRender();
+</script>
+
+</body>
+</html>
